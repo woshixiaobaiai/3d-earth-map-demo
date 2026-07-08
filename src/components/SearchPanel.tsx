@@ -97,7 +97,7 @@ export default function SearchPanel({ onSearch, isLoading = false, disabled = fa
       {/* 快捷搜索标签 */}
       <div className="quick-search">
         <span className="quick-label">热门:</span>
-        {['北京', '上海', '深圳', '杭州', '成都'].map((city) => (
+        {['北京', '上海', '深圳', '杭州', '成都', '智谷大厦'].map((city) => (
           <button
             key={city}
             className="quick-tag"

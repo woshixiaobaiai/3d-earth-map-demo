@@ -3,14 +3,14 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
-import CesiumEarth from './map/CesiumEarth';
-import Baidu3DMap from './map/Baidu3DMap';
-import SearchPanel from './components/SearchPanel';
-import LocationCard from './components/LocationCard';
-import StatusBadge from './components/StatusBadge';
-import LoadingOverlay from './components/LoadingOverlay';
-import { geocode } from './map/geoService';
-import { Coordinate, AppMode, validateConfig, detectWebGL } from './utils/config';
+import CesiumEarth from './map/CesiumEarth.tsx';
+import Baidu3DMap from './map/Baidu3DMap.tsx';
+import SearchPanel from './components/SearchPanel.tsx';
+import LocationCard from './components/LocationCard.tsx';
+import StatusBadge from './components/StatusBadge.tsx';
+import LoadingOverlay from './components/LoadingOverlay.tsx';
+import { geocode } from './map/geoService.ts';
+import { Coordinate, AppMode, validateConfig, detectWebGL } from './utils/config.ts';
 import './styles/global.css';
 
 export default function App() {
@@ -74,7 +74,7 @@ export default function App() {
       if (result.success && result.location) {
         setCurrentLocation(result.location);
         setMode('flying');
-        console.log('切换到飞行模式，目标位置:', result.location);
+        console.log('🎯 搜索成功，目标位置:', result.location.name, result.location.lng, result.location.lat);
       } else {
         setMode('error');
         setError(result.message || '搜索失败');
@@ -197,7 +197,7 @@ export default function App() {
         />
       </div>
 
-      {/* 百度 3D 地图 - 始终渲染但控制可见性，提前初始化地理编码 */}
+      {/* 百度 3D 地图 - 始终渲染，提前初始化地图 */}
       <Baidu3DMap
         location={currentLocation}
         visible={mode === 'city'}

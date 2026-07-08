@@ -76,7 +76,7 @@ export function validateConfig(): { valid: boolean; message?: string } {
   return { valid: true };
 }
 
-// WebGL 检测 - 更全面的检测
+// WebGL 检测 - 宽松检测，让 Cesium 自己处理
 export function detectWebGL(): boolean {
   try {
     const canvas = document.createElement('canvas');
@@ -84,18 +84,21 @@ export function detectWebGL(): boolean {
     // 尝试 WebGL 2
     const gl2 = canvas.getContext('webgl2');
     if (gl2) {
+      console.log('✅ WebGL 2 支持');
       return true;
     }
 
     // 尝试 WebGL 1
     const gl1 = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
     if (gl1) {
+      console.log('✅ WebGL 1 支持');
       return true;
     }
 
-    return false;
+    console.warn('⚠️ WebGL 检测失败，但继续尝试...');
+    return true; // 宽松策略：即使检测失败也继续，让 Cesium 自己处理降级
   } catch (e) {
-    console.warn('WebGL 检测异常:', e);
-    return false;
+    console.warn('WebGL 检测异常，继续尝试:', e);
+    return true; // 出现异常也继续
   }
 }

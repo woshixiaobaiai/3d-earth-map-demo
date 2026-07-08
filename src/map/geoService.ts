@@ -39,6 +39,8 @@ const MOCK_LOCATIONS: Record<string, Coordinate> = {
   '青岛': { lng: 120.3826, lat: 36.0671, name: '青岛市', address: '中国山东省青岛市' },
   '大连': { lng: 121.6147, lat: 38.9140, name: '大连市', address: '中国辽宁省大连市' },
   '厦门': { lng: 118.0894, lat: 24.4798, name: '厦门市', address: '中国福建省厦门市' },
+  '智谷大厦': { lng: 116.1915, lat: 40.0712, name: '北京海淀智谷大厦', address: '北京市海淀区智谷大厦' },
+  '北京海淀智谷大厦': { lng: 116.1915, lat: 40.0712, name: '北京海淀智谷大厦', address: '北京市海淀区智谷大厦' },
 };
 
 /**

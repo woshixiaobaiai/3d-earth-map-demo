@@ -579,12 +579,14 @@ body,
   left: 0;
   width: 100%;
   height: 100%;
-  transition: opacity 0.8s ease-in-out;
+  z-index: 1;
+  background: #0a0a1a;
 }
 
 .cesium-container.hidden {
   opacity: 0;
   pointer-events: none;
+  visibility: hidden;
 }
 
 .baidu-map-container {
@@ -594,13 +596,15 @@ body,
   width: 100%;
   height: 100%;
   opacity: 0;
-  transition: opacity 0.8s ease-in-out;
   pointer-events: none;
+  z-index: 10;
+  visibility: hidden;
 }
 
 .baidu-map-container.visible {
   opacity: 1;
   pointer-events: auto;
+  visibility: visible;
 }
 
 /* Cesium 样式覆盖 */

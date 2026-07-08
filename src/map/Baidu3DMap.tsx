@@ -1,10 +1,10 @@
 /**
  * 百度地图 3D 城市组件
- * 当百度地图不可用时，显示模拟的城市 3D 视图
+ * 显示真实百度地图 3D 建筑白模视图
  */
 
-import { useEffect, useRef, useCallback, useState } from 'react';
-import { Coordinate, APP_CONFIG } from '../utils/config';
+import { useEffect, useRef, useState } from 'react';
+import { Coordinate } from '../utils/config';
 
 interface Baidu3DMapProps {
   location?: Coordinate | null;
@@ -14,102 +14,175 @@ interface Baidu3DMapProps {
 
 export default function Baidu3DMap({ location, visible = false, onReady }: Baidu3DMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isReady, setIsReady] = useState(false);
+  const mapRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
+  const mapReadyRef = useRef(false);
+  const prevVisibleRef = useRef(false);
 
-  // 根据城市名称生成不同的城市特征色
-  const getCityColor = (name?: string) => {
-    const cityColors: Record<string, string> = {
-      '北京': '#4a90e2',
-      '上海市': '#6366f1',
-      '深圳': '#10b981',
-      '广州': '#f59e0b',
-      '杭州': '#8b5cf6',
-      '成都': '#ef4444',
-      '西安': '#d97706',
+  // 页面加载就初始化百度地图
+  useEffect(() => {
+    if (!containerRef.current || mapReadyRef.current) return;
+
+    const checkBMap = () => {
+      const BMap = (window as any).BMapGL;
+      if (!BMap) {
+        console.warn('⏳ 等待百度地图 API 加载...');
+        setTimeout(checkBMap, 500);
+        return;
+      }
+
+      try {
+        console.log('🗺️ 开始初始化百度地图...');
+
+        // 默认中心点（北京）
+        const defaultPoint = new BMap.Point(116.404, 39.915);
+
+        // 创建地图实例
+        const map = new BMap.Map(containerRef.current);
+        mapRef.current = map;
+
+        // 初始化地图
+        map.centerAndZoom(defaultPoint, 18);
+
+        // 启用滚轮缩放
+        map.enableScrollWheelZoom(true);
+
+        // 启用拖拽
+        map.enableDragging();
+
+        // 设置 3D 倾斜视角
+        setTimeout(() => {
+          map.setTilt(75);
+          map.setHeading(45);
+          console.log('✅ 已设置 75° 3D 倾斜视角');
+        }, 300);
+
+        mapReadyRef.current = true;
+        console.log('✅ 百度地图初始化成功');
+        onReady?.();
+
+      } catch (error) {
+        console.error('❌ 百度地图初始化失败:', error);
+      }
     };
-    return cityColors[name || ''] || '#4a90e2';
+
+    setTimeout(checkBMap, 100);
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.destroy();
+        mapRef.current = null;
+      }
+    };
+  }, [onReady]);
+
+  // ✅ 关键修复：监听 visible 变化，当从 false -> true 时强制重新定位
+  useEffect(() => {
+    // 只有当 visible 从 false 变为 true，且有 location 时才执行
+    if (!prevVisibleRef.current && visible && location && mapRef.current) {
+      console.log('🎯 地图显示，立即定位到:', location.name);
+
+      // ✅ 关键：强制地图刷新尺寸（百度地图隐藏后再显示常见问题）
+      setTimeout(() => {
+        if (mapRef.current) {
+          mapRef.current.resize();
+          console.log('🔧 地图尺寸已刷新');
+        }
+      }, 0);
+
+      performLocation(location);
+    }
+    prevVisibleRef.current = visible;
+  }, [visible, location]);
+
+  // ✅ visible=true 时强制设置 3D 视角（多次重试确保生效）
+  useEffect(() => {
+    if (visible && mapRef.current) {
+      // 强制设置 3D 视角（5 次重试确保生效）
+      [0, 100, 200, 400, 600].forEach((delay) => {
+        setTimeout(() => {
+          if (mapRef.current) {
+            mapRef.current.setTilt(75);
+            mapRef.current.setHeading(45);
+            console.log(`📍 ${delay}ms 后设置 75° 3D 视角`);
+          }
+        }, delay);
+      });
+    }
+  }, [visible]);
+
+  // 执行定位
+  const performLocation = (loc: Coordinate) => {
+    const BMap = (window as any).BMapGL;
+    if (!BMap || !mapRef.current) return;
+
+    try {
+      const point = new BMap.Point(loc.lng, loc.lat);
+
+      console.log('📍 执行定位:', loc.name, loc.lng, loc.lat);
+
+      // 清除旧标记
+      mapRef.current.clearOverlays();
+
+      // ✅ 多次定位确保生效（不同时间点）
+      const doLocate = (delay: number, zoom: number) => {
+        setTimeout(() => {
+          if (!mapRef.current) return;
+          mapRef.current.centerAndZoom(point, zoom);
+          mapRef.current.setTilt(75);
+          mapRef.current.setHeading(45);
+          console.log(`📍 ${delay}ms 后定位，缩放: ${zoom}`);
+        }, delay);
+      };
+
+      // 立即执行 + 多次重试
+      doLocate(0, 18);
+      doLocate(50, 18);
+      doLocate(150, 18);
+      doLocate(300, 18);
+      doLocate(500, 18);
+
+      // ✅ 额外的 panTo 方式
+      setTimeout(() => {
+        if (!mapRef.current) return;
+        mapRef.current.panTo(point);
+        console.log('📍 panTo 定位');
+      }, 100);
+
+      setTimeout(() => {
+        if (!mapRef.current) return;
+        mapRef.current.panTo(point);
+        console.log('📍 再次 panTo');
+      }, 200);
+
+      // 添加标记
+      setTimeout(() => {
+        if (!mapRef.current) return;
+        const marker = new BMap.Marker(point);
+        markerRef.current = marker;
+        mapRef.current.addOverlay(marker);
+        console.log('📍 已添加定位标记');
+      }, 350);
+
+    } catch (error) {
+      console.error('❌ 定位失败:', error);
+    }
   };
 
-  // 初始化
+  // location 变化时也重新定位（如果当前可见）
   useEffect(() => {
-    if (visible && !isReady) {
-      console.log('✅ 3D 城市视图已就绪');
-      setIsReady(true);
-      onReady?.();
+    if (visible && location && mapRef.current) {
+      console.log('📍 位置变化，重新定位:', location.name);
+      performLocation(location);
     }
-  }, [visible, isReady, onReady]);
+  }, [location, visible]);
 
-  if (!visible) return null;
-
-  const cityColor = getCityColor(location?.name);
-
+  // 百度地图始终渲染，只通过 CSS 控制可见性
   return (
     <div
       ref={containerRef}
-      className="baidu-map-container visible"
+      className={`baidu-map-container ${visible ? 'visible' : ''}`}
       style={{ width: '100%', height: '100%' }}
-    >
-      {/* 城市 3D 模拟视图 */}
-      <div className="fallback-city-view">
-        {/* 视图标题 */}
-        <div className="view-mode-badge">
-          <span className="mode-icon">🏙️</span>
-          <span className="mode-text">3D 城市视图</span>
-        </div>
-
-        {/* 城市建筑群 */}
-        <div className="city-buildings-container">
-          {/* 主塔楼 */}
-          <div className="main-tower" style={{ '--color': cityColor } as React.CSSProperties}>
-            {Array.from({ length: 15 }).map((_, i) => (
-              <div key={i} className="tower-floor">
-                <div className="floor-window w1" />
-                <div className="floor-window w2" />
-                <div className="floor-window w3" />
-                <div className="floor-window w4" />
-              </div>
-            ))}
-          </div>
-
-          {/* 周边建筑 */}
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div
-              key={i}
-              className={`surrounding-building building-${i + 1}`}
-              style={{
-                '--height': `${80 + (i % 4) * 40}px`,
-                '--color': `${cityColor}cc`,
-              } as React.CSSProperties}
-            />
-          ))}
-
-          {/* 道路网格 */}
-          <div className="city-roads-3d">
-            <div className="road-h road-1" />
-            <div className="road-h road-2" />
-            <div className="road-v road-1" />
-            <div className="road-v road-2" />
-          </div>
-
-          {/* 中心定位标记 */}
-          <div className="location-marker-center">
-            <div className="marker-pin" />
-            <div className="marker-ring-anim" />
-            <div className="marker-ring-anim delay-1" />
-            <div className="marker-ring-anim delay-2" />
-          </div>
-        </div>
-
-        {/* 地点信息 */}
-        {location && (
-          <div className="location-info-bottom">
-            <div className="loc-name">{location.name || '目标地点'}</div>
-            <div className="loc-coords">
-              {location.lng.toFixed(4)}, {location.lat.toFixed(4)}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+    />
   );
 }
